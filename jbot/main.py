@@ -1,4 +1,4 @@
-from GPIO import GPIO as gp
+from LePotatoPi.GPIO import GPIO as gp
 
 from enum import Enum
 
@@ -84,25 +84,29 @@ elif myPinMode == PinMode.HEADER:
 
 
 
-
+def outputs(pins, val):
+    for p in pins:
+        gp.output(p, val) 
 
 
 def write_angle(pin, angle_degree):
     if type(pin)==list:
         for p in pin:
             write_angle(p, angle_degree)
-            
+        return 
     if pin not in SERVO_PINS:
-        raise ValueError('pin must be in SERVO_PINS, i.e. be connected to a servo motor.')
+        raise ValueError('pin '+str(pin)+' must be in SERVO_PINS, i.e. be connected to a servo motor.')
 
     if angle_degree<=90 and angle_degree>=-90:
-        GPIO.output(pin, GPIO.LOW) 
-        time.sleep(0.02)
+        t = 0.0015+0.0005*angle_degree/90.0
+        for i in range(10):
+            gp.output(pin, gp.LOW) 
+            time.sleep(0.02-t)
 
-        GPIO.output(pin, GPIO.HIGH) 
-        time.sleep(0.0015+0.0005*angle_degree/90)
+            gp.output(pin, gp.HIGH) 
+            time.sleep(t)
 
-        GPIO.output(pin, GPIO.LOW) 
+            gp.output(pin, gp.LOW) 
     else:
         raise ValueError('angle_degree should be from -90 to 90.')
 
@@ -110,33 +114,38 @@ def write_angle(pin, angle_degree):
 def move(d: Direction):
     MOTOR_R = [MOTOR_R_FWD,MOTOR_R_BWD,MOTOR_R_PWM]
     MOTOR_L = [MOTOR_L_FWD,MOTOR_L_BWD,MOTOR_L_PWM]
+    outputs(MOTOR_R+MOTOR_L, gp.LOW)
     if   d == Direction.FWD:
-        GPIO.output(MOTOR_R+MOTOR_L, GPIO.LOW)
-        GPIO.output([MOTOR_R_FWD,MOTOR_L_FWD], GPIO.HIGH)
+        outputs([MOTOR_R_FWD,MOTOR_L_FWD], gp.HIGH)
     elif d == Direction.BWD:
-        GPIO.output(MOTOR_R+MOTOR_L, GPIO.LOW)
-        GPIO.output([MOTOR_R_BWD,MOTOR_L_BWD], GPIO.HIGH)
+        outputs([MOTOR_R_BWD,MOTOR_L_BWD], gp.HIGH)
     elif d == Direction.RCW:
-        GPIO.output(MOTOR_R+MOTOR_L, GPIO.LOW)
-        GPIO.output([MOTOR_R_FWD,MOTOR_L_BWD], GPIO.HIGH)
+        outputs([MOTOR_R_FWD,MOTOR_L_BWD], gp.HIGH)
     elif d == Direction.RCCW:
-        GPIO.output(MOTOR_R+MOTOR_L, GPIO.LOW)
-        GPIO.output([MOTOR_R_BWD,MOTOR_L_FWD], GPIO.HIGH)
-    time.sleep(0.3)
-    GPIO.output(MOTOR_R+MOTOR_L, GPIO.LOW)    
+        outputs([MOTOR_R_BWD,MOTOR_L_FWD], gp.HIGH)
+    outputs([MOTOR_R_PWM,MOTOR_L_PWM], gp.HIGH)
+    time.sleep(0.1)
+    outputs(MOTOR_R+MOTOR_L, gp.LOW)    
     pass
 
 
 
 
-GPIO.setmode(GPIO.BOARD)
+gp.setmode(gp.BOARD)
 
 OUT_PINS = [CAM_SERVO1,CAM_SERVO2,ECHO_SERVO1,MOTOR_R_FWD,MOTOR_R_BWD,MOTOR_R_PWM,
-            MOTOR_L_FWD,MOTOR_L_BWD,MOTOR_L_PWM,BUZZER]
+            MOTOR_L_FWD,MOTOR_L_BWD,MOTOR_L_PWM]
+
+#OUT_PINS = [CAM_SERVO1,CAM_SERVO2,ECHO_SERVO1,MOTOR_R_FWD,MOTOR_R_BWD,MOTOR_R_PWM,
+#            MOTOR_L_FWD,MOTOR_L_BWD,MOTOR_L_PWM,BUZZER]
 
 TRACKING_L1,TRACKING_L2,TRACKING_R1,TRACKING_R2 
 IR_L,IR_R
 SEEKLIGHT_L,SEEKLIGHT_R
 RGB_R,RGB_G,RGB_B
 
-GPIO.setup(OUT_PINS, GPIO.OUT, initial=GPIO.LOW)
+for p in OUT_PINS:
+    gp.setup(p, gp.OUT, initial=gp.LOW)
+
+
+#gp.setup(BUZZER, gp.OUT, initial=gp.HIGH)
