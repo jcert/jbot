@@ -2,6 +2,8 @@ from LePotatoPi.GPIO import GPIO as gp
 
 from enum import Enum
 
+
+from threading import Thread
 import time
 
 
@@ -128,6 +130,34 @@ def move(d: Direction):
     outputs(MOTOR_R+MOTOR_L, gp.LOW)    
     pass
 
+
+pwm_threads = []
+
+def my_pwm_start(pin, duty, period):
+    assert duty>=0
+    assert duty<=100
+    assert period>=0
+
+    def aux():
+        gp.output(pin, gp.HIGH)
+        time.sleep(period*duty/100.0)
+        gp.output(pin, gp.LOW)
+        time.sleep(period*(100-duty)/100.0)
+
+    old_thread = next((x for x in pwm_threads if x.pin==pin), None )
+    if old_thread != None:
+        old_thread.thread.stop()
+        gp.output(pin, gp.LOW)
+    
+    pwm_thread = Thread(target = aux, args = (10,'thread1', ))
+    pwm_threads.append({"pin":pin, "thread":pwm_thread, "duty":duty, "period":period})
+    pwm_thread.start()    
+
+def my_pwm_stop(pin):
+    old_thread = next((x for x in pwm_threads if x.pin==pin), None )
+    if old_thread != None:
+        old_thread.thread.stop()
+        gp.output(pin, gp.LOW)
 
 
 
